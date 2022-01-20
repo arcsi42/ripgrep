@@ -87,6 +87,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ matrix.build }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
     - name: Install packages (Ubuntu)
       if: matrix.os == 'ubuntu-18.04'
       run: |
