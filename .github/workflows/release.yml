@@ -17,17 +17,17 @@ name: release
 on:
   push:
     # Enable when testing release infrastructure on a branch.
-    # branches:
-    # - ag/work
+    branches:
+    - aarch64-apple-darwin
     tags:
     - "[0-9]+.[0-9]+.[0-9]+"
 jobs:
   create-release:
     name: create-release
     runs-on: ubuntu-latest
-    # env:
+    env:
       # Set to force version number, e.g., when no tag exists.
-      # RG_VERSION: TEST-0.0.0
+      RG_VERSION: TEST-0.0.0
     outputs:
       upload_url: ${{ steps.release.outputs.upload_url }}
       rg_version: ${{ env.RG_VERSION }}
@@ -68,7 +68,7 @@ jobs:
       PCRE2_SYS_STATIC: 1
     strategy:
       matrix:
-        build: [linux, linux-arm, macos, win-msvc, win-gnu, win32-msvc]
+        build: [linux, linux-arm, macos, macos-arm, win-msvc, win-gnu, win32-msvc]
         include:
         - build: linux
           os: ubuntu-18.04
@@ -82,6 +82,10 @@ jobs:
           os: macos-latest
           rust: nightly
           target: x86_64-apple-darwin
+        - build: macos-arm
+          os: macos-11
+          rust: nightly
+          # target: aarch64-apple-darwin
         - build: win-msvc
           os: windows-2019
           rust: nightly
@@ -107,7 +111,7 @@ jobs:
         ci/ubuntu-install-packages
 
     - name: Install packages (macOS)
-      if: matrix.os == 'macos-latest'
+      if: startsWith(matrix.os, 'macos')
       run: |
         ci/macos-install-packages
 
@@ -137,7 +141,7 @@ jobs:
       run: ${{ env.CARGO }} build --verbose --release --features pcre2 ${{ env.TARGET_FLAGS }}
 
     - name: Strip release binary (linux and macos)
-      if: matrix.build == 'linux' || matrix.build == 'macos'
+      if: matrix.build == 'linux' || matrix.build == 'macos' || matrix.build == 'macos-arm'
       run: strip "target/${{ matrix.target }}/release/rg"
 
     - name: Strip release binary (arm)
