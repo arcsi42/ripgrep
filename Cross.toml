@@ -8,4 +8,4 @@ image = "burntsushi/cross:i686-unknown-linux-gnu"
 image = "burntsushi/cross:mips64-unknown-linux-gnuabi64"
 
 [target.arm-unknown-linux-gnueabihf]
-image = "burntsushi/cross:arm-unknown-linux-gnueabihf"
+image = "arcsi42/cross:arm-unknown-linux-gnueabihf"
