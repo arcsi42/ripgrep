@@ -87,7 +87,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Check for cache
+    - name: Cache
       uses: actions/cache@v2
       with:
         path: |
