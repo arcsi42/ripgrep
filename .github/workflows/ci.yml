@@ -38,7 +38,7 @@ jobs:
         # - nightly-mips
         # - nightly-arm
         - macos
-        - macos-11
+        - macos-arm
         # - win-msvc
         # - win-gnu
         include:
@@ -78,7 +78,7 @@ jobs:
         - build: macos
           os: macos-latest
           rust: nightly
-        - build: macos-11
+        - build: macos-arm
           os: macos-11
           rust: nightly
         # - build: win-msvc
@@ -97,7 +97,7 @@ jobs:
         ci/ubuntu-install-packages
 
     - name: Install packages (macOS)
-      if: matrix.os == 'macos-latest'
+      if: startsWith(matrix.os, 'macos')
       run: |
         ci/macos-install-packages
 
