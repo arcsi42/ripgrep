@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Set to force version number, e.g., when no tag exists.
-      RG_VERSION: TEST-0.0.0
+      RG_VERSION: TEST-0.0.1
     outputs:
       upload_url: ${{ steps.release.outputs.upload_url }}
       rg_version: ${{ env.RG_VERSION }}
@@ -74,30 +74,37 @@ jobs:
           os: ubuntu-18.04
           rust: nightly
           target: x86_64-unknown-linux-musl
+          use-cross: true
         - build: linux-arm
           os: ubuntu-18.04
           rust: nightly
           target: arm-unknown-linux-gnueabihf
+          use-cross: true
         - build: macos
           os: macos-latest
           rust: nightly
           target: x86_64-apple-darwin
+          use-cross: true
         - build: macos-arm
           os: macos-11
           rust: nightly
-          # target: aarch64-apple-darwin
+          target: aarch64-apple-darwin
+          use-cross: false
         - build: win-msvc
           os: windows-2019
           rust: nightly
           target: x86_64-pc-windows-msvc
+          use-cross: true
         - build: win-gnu
           os: windows-2019
           rust: nightly-x86_64-gnu
           target: x86_64-pc-windows-gnu
+          use-cross: true
         - build: win32-msvc
           os: windows-2019
           rust: nightly
           target: i686-pc-windows-msvc
+          use-cross: true
 
     steps:
     - name: Checkout repository
@@ -124,7 +131,7 @@ jobs:
         target: ${{ matrix.target }}
 
     - name: Use Cross
-      if: matrix.target != ''
+      if: ${{ matrix.use-cross == true }}
       shell: bash
       run: |
         cargo install cross
