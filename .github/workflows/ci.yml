@@ -38,6 +38,7 @@ jobs:
         # - nightly-mips
         # - nightly-arm
         - macos
+        - macos-11
         # - win-msvc
         # - win-gnu
         include:
