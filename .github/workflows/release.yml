@@ -124,6 +124,7 @@ jobs:
         target: ${{ matrix.target }}
 
     - name: Use Cross
+      if: matrix.target != ''
       shell: bash
       run: |
         cargo install cross
