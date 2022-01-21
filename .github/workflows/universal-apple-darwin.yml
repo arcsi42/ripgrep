@@ -207,18 +207,18 @@ jobs:
       - name: Make universal binary
         shell: bash
         run: |
-          lipo -create -output "target/${{ matrix.target }}/release/rg" ripgrep-${{ needs.create-release.outputs.rg_version }}-x86_64-apple-darwin/rg ripgrep-${{ needs.create-release.outputs.rg_version }}-aarch64-apple-darwin/rg
+          mkdir -p target/${{ matrix.target }}/release
+          lipo -create -output "target/${{ matrix.target }}/release/rg" "ripgrep-${{ needs.create-release.outputs.rg_version }}-x86_64-apple-darwin/rg" "ripgrep-${{ needs.create-release.outputs.rg_version }}-aarch64-apple-darwin/rg"
 
       - name: Build archive
         shell: bash
         run: |
-          outdir="$(ci/cargo-out-dir "${{ env.TARGET_DIR }}")"
           staging="ripgrep-${{ needs.create-release.outputs.rg_version }}-${{ matrix.target }}"
           mkdir -p "$staging"/{complete,doc}
 
           cp {README.md,COPYING,UNLICENSE,LICENSE-MIT} "$staging/"
           cp {CHANGELOG.md,FAQ.md,GUIDE.md} "$staging/doc/"
-          cp "$outdir"/{rg.bash,rg.fish,_rg.ps1} "$staging/complete/"
+          cp "ripgrep-${{ needs.create-release.outputs.rg_version }}-aarch64-apple-darwin"/complete/{rg.bash,rg.fish,_rg.ps1} "$staging/complete/"
           cp complete/_rg "$staging/complete/"
 
           if [ "${{ matrix.os }}" = "windows-2019" ]; then
