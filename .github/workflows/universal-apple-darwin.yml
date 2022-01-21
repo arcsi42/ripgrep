@@ -164,3 +164,81 @@ jobs:
           asset_path: ${{ env.ASSET }}
           asset_name: ${{ env.ASSET }}
           asset_content_type: application/octet-stream
+
+  create-universal-binary:
+    name: create-universal-binary
+    needs: ['create-release', 'build-release-macos']
+    runs-on: ${{ matrix.os }}
+    env:
+      # For some builds, we use cross to test on 32-bit and big-endian
+      # systems.
+      CARGO: cargo
+      # When CARGO is set to CROSS, this is set to `--target matrix.target`.
+      TARGET_FLAGS: ""
+      # When CARGO is set to CROSS, TARGET_DIR includes matrix.target.
+      TARGET_DIR: ./target
+      # Emit backtraces on panics.
+      RUST_BACKTRACE: 1
+      # Build static releases with PCRE2.
+      PCRE2_SYS_STATIC: 1
+    strategy:
+      matrix:
+        build: [macos-universal]
+        include:
+          - build: macos-universal
+            os: macos-11
+            rust: nightly
+            target: universal-apple-darwin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Download macos builds of ripgrep
+        shell: bash
+        run: |
+          wget "https://github.com/${{ env.GITHUB_REPOSITORY }}/releases/download/${{ needs.create-release.outputs.rg_version }}/ripgrep-${{ needs.create-release.outputs.rg_version }}-aarch64-apple-darwin.tar.gz"
+          wget "https://github.com/${{ env.GITHUB_REPOSITORY }}/releases/download/${{ needs.create-release.outputs.rg_version }}/ripgrep-${{ needs.create-release.outputs.rg_version }}-x86_64-apple-darwin.tar.gz"
+          tar -xzf "ripgrep-${{ needs.create-release.outputs.rg_version }}-aarch64-apple-darwin.tar.gz"
+          tar -xzf "ripgrep-${{ needs.create-release.outputs.rg_version }}-x86_64-apple-darwin.tar.gz"
+
+      - name: Make universal binary
+        shell: bash
+        run: |
+          lipo -create -output "target/${{ matrix.target }}/release/rg" ripgrep-${{ needs.create-release.outputs.rg_version }}-x86_64-apple-darwin/rg ripgrep-${{ needs.create-release.outputs.rg_version }}-aarch64-apple-darwin/rg
+
+      - name: Build archive
+        shell: bash
+        run: |
+          outdir="$(ci/cargo-out-dir "${{ env.TARGET_DIR }}")"
+          staging="ripgrep-${{ needs.create-release.outputs.rg_version }}-${{ matrix.target }}"
+          mkdir -p "$staging"/{complete,doc}
+
+          cp {README.md,COPYING,UNLICENSE,LICENSE-MIT} "$staging/"
+          cp {CHANGELOG.md,FAQ.md,GUIDE.md} "$staging/doc/"
+          cp "$outdir"/{rg.bash,rg.fish,_rg.ps1} "$staging/complete/"
+          cp complete/_rg "$staging/complete/"
+
+          if [ "${{ matrix.os }}" = "windows-2019" ]; then
+            cp "target/${{ matrix.target }}/release/rg.exe" "$staging/"
+            7z a "$staging.zip" "$staging"
+            echo "ASSET=$staging.zip" >> $GITHUB_ENV
+          else
+            # The man page is only generated on Unix systems. ¯\_(ツ)_/¯
+            cp "$outdir"/rg.1 "$staging/doc/"
+            cp "target/${{ matrix.target }}/release/rg" "$staging/"
+            tar czf "$staging.tar.gz" "$staging"
+            echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
+          fi
+
+      - name: Upload release archive
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ env.ASSET }}
+          asset_name: ${{ env.ASSET }}
+          asset_content_type: application/octet-stream
