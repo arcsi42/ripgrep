@@ -17,17 +17,17 @@ name: release
 on:
   push:
     # Enable when testing release infrastructure on a branch.
-    # branches:
-    # - ag/work
+    branches:
+    - aarch64-apple-darwin
     tags:
     - "[0-9]+.[0-9]+.[0-9]+"
 jobs:
   create-release:
     name: create-release
     runs-on: ubuntu-latest
-    # env:
+    env:
       # Set to force version number, e.g., when no tag exists.
-      # RG_VERSION: TEST-0.0.0
+      RG_VERSION: TEST-0.0.2
     outputs:
       upload_url: ${{ steps.release.outputs.upload_url }}
       rg_version: ${{ env.RG_VERSION }}
@@ -68,32 +68,43 @@ jobs:
       PCRE2_SYS_STATIC: 1
     strategy:
       matrix:
-        build: [linux, linux-arm, macos, win-msvc, win-gnu, win32-msvc]
+        build: [linux, linux-arm, macos, macos-arm, win-msvc, win-gnu, win32-msvc]
         include:
         - build: linux
           os: ubuntu-18.04
           rust: nightly
           target: x86_64-unknown-linux-musl
+          use-cross: true
         - build: linux-arm
           os: ubuntu-18.04
           rust: nightly
           target: arm-unknown-linux-gnueabihf
+          use-cross: true
         - build: macos
           os: macos-latest
           rust: nightly
           target: x86_64-apple-darwin
+          use-cross: true
+        - build: macos-arm
+          os: macos-11
+          rust: nightly
+          target: aarch64-apple-darwin
+          use-cross: false
         - build: win-msvc
           os: windows-2019
           rust: nightly
           target: x86_64-pc-windows-msvc
+          use-cross: true
         - build: win-gnu
           os: windows-2019
           rust: nightly-x86_64-gnu
           target: x86_64-pc-windows-gnu
+          use-cross: true
         - build: win32-msvc
           os: windows-2019
           rust: nightly
           target: i686-pc-windows-msvc
+          use-cross: true
 
     steps:
     - name: Checkout repository
@@ -107,7 +118,7 @@ jobs:
         ci/ubuntu-install-packages
 
     - name: Install packages (macOS)
-      if: matrix.os == 'macos-latest'
+      if: startsWith(matrix.os, 'macos')
       run: |
         ci/macos-install-packages
 
@@ -120,10 +131,15 @@ jobs:
         target: ${{ matrix.target }}
 
     - name: Use Cross
+      if: ${{ matrix.use-cross == true }}
       shell: bash
       run: |
         cargo install cross
         echo "CARGO=cross" >> $GITHUB_ENV
+
+    - name: Set target directory
+      shell: bash
+      run: |
         echo "TARGET_FLAGS=--target ${{ matrix.target }}" >> $GITHUB_ENV
         echo "TARGET_DIR=./target/${{ matrix.target }}" >> $GITHUB_ENV
 
@@ -137,7 +153,7 @@ jobs:
       run: ${{ env.CARGO }} build --verbose --release --features pcre2 ${{ env.TARGET_FLAGS }}
 
     - name: Strip release binary (linux and macos)
-      if: matrix.build == 'linux' || matrix.build == 'macos'
+      if: matrix.build == 'linux' || matrix.build == 'macos' || matrix.build == 'macos-arm'
       run: strip "target/${{ matrix.target }}/release/rg"
 
     - name: Strip release binary (arm)
